@@ -490,23 +490,126 @@ scheduler(void)
   }
 }
 
+
 #elif SCHEDULER == LOTTERY
 /**
- * TODO: Implement the lottery scheduler.
+ * Lottery Scheduler implementation.
+ * This scheduler uses a random number generator to simulate
+ * drawing a "winning ticket" for the process with more tickets
+ * having a higher chance of being picked.
  */
 void
 scheduler(void)
 {
+  struct proc *p;
+  struct cpu *c = mycpu();
+  c->proc = 0;
 
+  for(;;){
+    intr_on();  // Enable interrupts to avoid deadlock
+
+    int total_tickets = 0;
+    int found = 0;
+
+    // Calculate the total number of tickets.
+    for(p = proc; p < &proc[NPROC]; p++) {
+      acquire(&p->lock);
+      if(p->state == RUNNABLE) {
+        total_tickets += p->tickets;
+      }
+      release(&p->lock);
+    }
+
+    if(total_tickets == 0) {
+      // No runnable processes, CPU waits for an interrupt.
+      intr_on();
+      asm volatile("wfi");
+      continue;
+    }
+
+    // Generate a random ticket value between 0 and total_tickets.
+    int winner_ticket = random() % total_tickets;
+    int current_ticket = 0;
+
+    // Find the winning process.
+    for(p = proc; p < &proc[NPROC]; p++) {
+      acquire(&p->lock);
+      if(p->state == RUNNABLE) {
+        current_ticket += p->tickets;
+        if(current_ticket > winner_ticket) {
+          // Switch to the chosen process.
+          p->state = RUNNING;
+          c->proc = p;
+          swtch(&c->context, &p->context);
+          ++p->ticks;  // Increment the tick count for the process.
+
+          // Process is done running for now.
+          // It should have changed its p->state before coming back.
+          c->proc = 0;
+          found = 1;
+          release(&p->lock);
+          break;
+        }
+      }
+      release(&p->lock);
+    }
+
+    if(!found) {
+      // No runnable processes, CPU waits for an interrupt.
+      intr_on();
+      asm volatile("wfi");
+    }
+  }
 }
+
 #elif SCHEDULER == STRIDE
 /**
- * TODO: Implement the stride scheduler.
+ * Stride Scheduler implementation.
+ * This scheduler allocates CPU time fairly using the stride scheduling algorithm.
+ * Processes with more tickets (lower stride value) get more frequent CPU time.
  */
 void
 scheduler(void)
 {
+  struct proc *p, *min_pass_proc;
+  struct cpu *c = mycpu();
+  c->proc = 0;
 
+  for(;;){
+    intr_on();  // Enable interrupts to avoid deadlock
+
+    min_pass_proc = 0;
+
+    // Find the runnable process with the minimum pass value.
+    for(p = proc; p < &proc[NPROC]; p++) {
+      acquire(&p->lock);
+      if(p->state == RUNNABLE) {
+        if (!min_pass_proc || p->pass < min_pass_proc->pass) {
+          min_pass_proc = p;
+        }
+      }
+      release(&p->lock);
+    }
+
+    if(min_pass_proc) {
+      acquire(&min_pass_proc->lock);
+      // Switch to the chosen process with the lowest pass.
+      min_pass_proc->state = RUNNING;
+      min_pass_proc->pass += min_pass_proc->stride;  // Increment the pass value by the stride
+      c->proc = min_pass_proc;
+      swtch(&c->context, &min_pass_proc->context);
+      ++min_pass_proc->ticks;  // Increment the tick count for the process.
+      
+      // Process is done running for now.
+      // It should have changed its p->state before coming back.
+      c->proc = 0;
+      release(&min_pass_proc->lock);
+    } else {
+      // No runnable processes, CPU waits for an interrupt.
+      intr_on();
+      asm volatile("wfi");
+    }
+  }
 }
 #endif
 

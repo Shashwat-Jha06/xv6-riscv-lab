@@ -274,7 +274,7 @@ proc_freepagetable(pagetable_t pagetable, uint64 sz)
  * @param kstack the kernel stack of the thread
  */
 void
-thread_freepagetable(pagetable_t pagetable, int thread_id, void *kstack)
+thread_freepagetable(pagetable_t pagetable, int thread_id, uint64 kstack)
 {
   
 }

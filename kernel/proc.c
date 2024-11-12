@@ -149,9 +149,42 @@ found:
   return p;
 }
 
+/**
+ * Allocate a new thread, which is similar to `allocproc()`
+ * but with some key differences:
+ * 
+ * 1. thread id assignment. You may need a 
+ * strategy to track different threads for a process
+ * 
+ * 2. page table sharing. The page table is inherited
+ * from parents, instead of creating a new one.
+ * 
+ * 3. kernel stack (context.sp) should be seperated from 
+ * parents'. 
+ * 
+ * To finish this, firstly copy the `allocproc()` function
+ * and do the necessary modifications.
+ * 
+ * TODO:
+ * @param parent the parent process
+ * @return the new thread
+ */
+static struct proc*
+allocthread(struct proc *parent)
+{
+
+}
+
 // free a proc structure and the data hanging from it,
 // including user pages.
 // p->lock must be held.
+/**
+ * You can reuse the `freeproc()` function to free a thread with some
+ * minor modifications.
+ * 
+ * TODO:
+ * @param t the thread to be freed
+ */
 static void
 freeproc(struct proc *p)
 {
@@ -173,6 +206,21 @@ freeproc(struct proc *p)
 
 // Create a user page table for a given process, with no user memory,
 // but with trampoline and trapframe pages.
+/**
+ * You can reuse the `proc_pagetable()` function to create a page table for a thread.
+ * Understand what trampoline code is and what trapframe is used for.
+ * Then do the necessary modifications.
+ * 
+ * 1. The trampoline code is only mapped when a **process** is created, not a thread.
+ * 
+ * 2. The trapframe is mapped for each thread/process. You need to decide where to map it.
+ * 
+ * 3. pagetable is shared between threads, so you don't need to create a new one if it's a thread.
+ * 
+ * TODO:
+ * @param p the process/thread
+ * @return the page table created/inherited from parent's 
+ */
 pagetable_t
 proc_pagetable(struct proc *p)
 {
@@ -213,6 +261,22 @@ proc_freepagetable(pagetable_t pagetable, uint64 sz)
   uvmunmap(pagetable, TRAMPOLINE, 1, 0);
   uvmunmap(pagetable, TRAPFRAME, 1, 0);
   uvmfree(pagetable, sz);
+}
+
+/**
+ * Free a thread's page table
+ * Only free the page for trapframe of the thread
+ * and free the kernel stack of the thread
+ * 
+ * TODO:
+ * @param pagetable the page table of the thread
+ * @param thread_id the id of the thread
+ * @param kstack the kernel stack of the thread
+ */
+void
+thread_freepagetable(pagetable_t pagetable, int thread_id, void *kstack)
+{
+  
 }
 
 // a user program that calls exec("/init")
@@ -323,6 +387,21 @@ fork(void)
   release(&np->lock);
 
   return pid;
+}
+
+/**
+ * Create a new thread, which is similar to `fork()` but with some key differences:
+ * 
+ * 1. The new thread shares the same address space with the parent.
+ * 2. The new thread has its own user stack.
+ * 3. All threads share the same file descriptors.
+ * 
+ * 
+ */
+int
+clone(void *stack) 
+{
+
 }
 
 // Pass p's abandoned children to init.

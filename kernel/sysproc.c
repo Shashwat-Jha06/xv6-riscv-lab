@@ -91,3 +91,16 @@ sys_uptime(void)
   release(&tickslock);
   return xticks;
 }
+
+/**
+ * Create a thread.
+ * 
+ * @return 0 on success, others on error.
+ */
+uint64
+sys_clone(void)
+{
+  uint64 ustack;
+  argaddr(0, &ustack);
+  return clone((void*)ustack);
+}

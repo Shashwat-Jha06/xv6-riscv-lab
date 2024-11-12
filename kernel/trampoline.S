@@ -99,17 +99,18 @@ uservec:
 
 .globl userret
 userret:
-        # userret(pagetable)
+        # userret(pagetable, TRAPFRAME)
         # called by usertrapret() in trap.c to
         # switch from kernel to user.
-        # a0: user page table, for satp.
+        # a0: TRAPFRAME, in user page table
+        # a1: user page table, for satp.
 
         # switch to the user page table.
         sfence.vma zero, zero
-        csrw satp, a0
+        csrw satp, a1
         sfence.vma zero, zero
 
-        li a0, TRAPFRAME
+        # li a0, TRAPFRAME
 
         # restore all but a0 from TRAPFRAME
         ld ra, 40(a0)

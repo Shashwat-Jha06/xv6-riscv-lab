@@ -126,6 +126,7 @@ usertrapret(void)
   // switches to the user page table, restores user registers,
   // and switches to user mode with sret.
   uint64 trampoline_userret = TRAMPOLINE + (userret - trampoline);
+  // TODO: modify this function call so that it can work properly
   ((void (*)(uint64))trampoline_userret)(satp);
 }
 
